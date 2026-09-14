@@ -1,0 +1,34 @@
+{
+  "manifest_version": 1,
+  "key": "com.example.lark-status-notifier",
+  "name": "飞书状态通知",
+  "description": "把工作区内所有 Agent 产生的 blocked / in_review 状态变更，汇总推送到飞书，附带可点的任务链接。",
+  "version": "1.0.0",
+  "author": {
+    "name": "multica-lark-notifier contributors"
+  },
+  "scopes": [
+    "issues:read",
+    "net:notifier.example.com"
+  ],
+  "contributes": {
+    "hooks": [
+      {
+        "key": "issue-status-changed",
+        "name": "状态变更推送",
+        "description": "issue 进入 blocked 或 in_review 时，向飞书推送一张带任务链接的卡片。",
+        "triggers": [
+          "event"
+        ],
+        "events": [
+          "issue.status_changed"
+        ],
+        "transport": {
+          "type": "http",
+          "url": "https://notifier.example.com/issue-callbacks"
+        },
+        "timeout_ms": 10000
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+services:
+  multica-lark-notifier:
+    build: .
+    # 固定容器名：backend 用服务名做主机名访问它，容器名也保持一致，
+    # 免得排查时在两套名字之间来回换算。
+    container_name: multica-lark-notifier
+    # 带点的别名：Multica 的 manifest 校验器要求 net: scope 的值形如域名
+    # （netDomainPattern 末尾的 + 强制至少一个点），所以 Docker 默认服务名
+    # multica-lark-notifier 会被拒。hostInNetScopes 是精确比对，这个别名
+    # 必须与 manifest 里的 net: 值、以及 DEV_ORIGINS 里的 host 三处逐字一致。
+    networks:
+      default:
+        aliases:
+          - multica-lark-notifier.internal
+    image: multica-lark-notifier:local
+    restart: unless-stopped
+    # 这个进程只做转发，内存占用很小；给出上限避免异常时拖垮宿主机。
+    mem_limit: 256m
+    mem_reservation: 64m
+    environment:
+      # ---- Multica 侧 ----
+      # 签名密钥：插件安装后由 Multica 生成的 whsec_ 值，不是部署主密钥。
+      MULTICA_HOOK_SECRET: ${MULTICA_HOOK_SECRET:?set MULTICA_HOOK_SECRET}
+      MULTICA_APP_URL: ${MULTICA_APP_URL:?set MULTICA_APP_URL}
+      MULTICA_WORKSPACE_SLUG: ${MULTICA_WORKSPACE_SLUG:?set MULTICA_WORKSPACE_SLUG}
+      # 必须与登记在 Multica 侧的回调地址路径逐字一致。
+      MULTICA_HOOK_PATH: ${MULTICA_HOOK_PATH:-/issue-callbacks}
+      # ---- 飞书侧 ----
+      LARK_APP_ID: ${LARK_APP_ID:?set LARK_APP_ID}
+      LARK_APP_SECRET: ${LARK_APP_SECRET:?set LARK_APP_SECRET}
+      LARK_BOT_TARGET: ${LARK_BOT_TARGET:?set LARK_BOT_TARGET}
+    # 本地验证时映射到宿主机；部署到 your-server 时删掉这段，
+    # 让它只在 Docker 网络内可达（backend 与它同网络，不需要经过宿主机）。
+    ports:
+      - "127.0.0.1:${NOTIFIER_PORT:-8787}:8787"
