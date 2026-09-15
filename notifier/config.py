@@ -66,6 +66,20 @@ class Settings:
     bind_host: str
     bind_port: int
 
+    # ---- 按人分发（可选）----
+    # 不配就是汇总模式：所有变更发给同一个 bot_target。团队规模上来后
+    # 每个人都会收到与自己无关的全部 issue，那时再开这个。
+    api_token: str
+    """Multica API token，用来查 issue 的订阅者。空则不启用按人分发。"""
+
+    identity_overrides: str
+    """邮箱 -> open_id 的覆盖表路径（JSON）。飞书绑定邮箱和公司邮箱
+    对不上的人靠它兜底；通讯录查得到的人不需要写进来。"""
+
+    debug_target: str
+    """调试重定向：非空时所有个人通知都改投这个 open_id，
+    卡片里标注本该发给谁。用于在真发给同事之前验证名单和内容。"""
+
     @property
     def use_api(self) -> bool:
         """凭 app_id/app_secret 直连 OpenAPI——容器里唯一可行的方式。"""
@@ -111,4 +125,7 @@ def load() -> Settings:
         webhook_secret=_optional("LARK_WEBHOOK_SECRET"),
         bind_host=_optional("BIND_HOST", "127.0.0.1"),
         bind_port=port,
+        api_token=_optional("MULTICA_API_TOKEN"),
+        identity_overrides=_optional("NOTIFIER_IDENTITY_OVERRIDES"),
+        debug_target=_optional("NOTIFIER_DEBUG_TARGET"),
     )

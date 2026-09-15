@@ -82,13 +82,30 @@ class RecipientResolver:
         if issue_id:
             try:
                 for r in self._fetch_subscribers(issue_id, workspace_id):
-                    found.setdefault(r.user_id, r)
+                    prev = found.get(r.user_id)
+                    # payload 来的 creator/assignee 没有邮箱，只有 user_id；
+                    # 订阅表这条才带邮箱。用 setdefault 会让占位记录留下来，
+                    # 导致 creator/assignee 永远解析不出 open_id、静默收不到通知。
+                    # 所以补全邮箱，但保留先前更准确的 reason。
+                    if prev is None:
+                        found[r.user_id] = r
+                    elif not prev.email and r.email:
+                        found[r.user_id] = Recipient(
+                            user_id=prev.user_id, email=r.email, reason=prev.reason
+                        )
             except RecipientError as exc:
                 # 订阅表查不到不该让整条通知失败：creator/assignee 照发，
                 # 少通知几个人好过一个都收不到。
                 logger.warning("订阅者查询失败，仅通知 creator/assignee: %s", exc)
 
         out = list(found.values())
+        no_email = [r.reason for r in out if not r.email]
+        if no_email:
+            # 没邮箱就换不出 open_id，这些人收不到。留痕，否则是静默丢通知。
+            logger.warning(
+                "issue %s 有 %d 个收件人缺邮箱（%s），将无法投递",
+                issue.get("identifier"), len(no_email), ",".join(sorted(set(no_email))),
+            )
         if len(out) > self._policy.max_recipients:
             logger.warning(
                 "issue %s 收件人 %d 人超过上限 %d，已截断",

@@ -100,12 +100,25 @@ class LarkAPISender:
         self._receive_id_type = "chat_id" if target.startswith("oc_") else "open_id"
 
     def send(self, change: StatusChange) -> None:
+        self.send_to(self._target, change)
+
+    def send_to(self, target: str, change: StatusChange, note: str = "") -> None:
+        """投给指定收件人。note 非空时追加一行说明（调试重定向用）。"""
+        if not target:
+            raise ValueError("target is required")
         card = render_card(change)
-        url = f"{_BASE}/im/v1/messages?receive_id_type={self._receive_id_type}"
+        if note:
+            # 卡片是 schema 2.0，元素挂在 body.elements 下；
+            # 写到顶层 elements 会被飞书判为 unknown property 而整条拒收。
+            card.setdefault("body", {}).setdefault("elements", []).append(
+                {"tag": "markdown", "content": note}
+            )
+        receive_id_type = "chat_id" if target.startswith("oc_") else "open_id"
+        url = f"{_BASE}/im/v1/messages?receive_id_type={receive_id_type}"
         data = _post_json(
             url,
             {
-                "receive_id": self._target,
+                "receive_id": target,
                 "msg_type": "interactive",
                 # content 要的是 JSON 字符串，不是对象——传对象会报 230001。
                 "content": json.dumps(card, ensure_ascii=False),

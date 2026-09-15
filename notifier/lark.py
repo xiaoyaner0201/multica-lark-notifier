@@ -201,6 +201,10 @@ def sign_webhook(secret: str, timestamp: int) -> str:
 class Sender(Protocol):
     def send(self, change: StatusChange) -> None: ...
 
+    def send_to(self, target: str, change: StatusChange, note: str = "") -> None:
+        """投给指定收件人。按人分发需要它；只做汇总的实现可以不支持。"""
+        raise NotImplementedError
+
 
 class DryRunSender:
     """只记录不发送。用于不希望产生外部副作用的测试。"""
@@ -210,6 +214,13 @@ class DryRunSender:
 
     def send(self, change: StatusChange) -> None:
         self.sent.append(render_card(change))
+
+    def send_to(self, target: str, change: StatusChange, note: str = "") -> None:
+        card = render_card(change)
+        card["_target"] = target
+        if note:
+            card["_note"] = note
+        self.sent.append(card)
 
 
 class LarkBotSender:
