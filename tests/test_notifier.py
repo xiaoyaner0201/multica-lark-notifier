@@ -323,7 +323,7 @@ class TestBotSender(unittest.TestCase):
 
 
 class TestCardLayout(unittest.TestCase):
-    """版式契约：对应爸爸 2026-09-14 提的四点要求。
+    """版式契约：对应老板 2026-09-14 提的四点要求。
 
     改版式时这些断言必须跟着改，否则等于没测——上一版就是改了布局
     而测试全绿，因为没有一条断言指向真实结构。
